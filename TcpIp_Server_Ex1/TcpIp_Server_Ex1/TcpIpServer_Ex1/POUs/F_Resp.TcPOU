@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="F_Resp" Id="{4fb55bc9-79fb-47fa-ac56-7e25bcd4d40a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_Resp : STRING(1000)
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*F_Resp := 'HTTP/1.1 200 OK
+Pragma: no-cache
+Cache-Control: no-cache
+Content-Type: application/json
+Content-Length: 000000000060
+
+{"header":{"status":0,"message":"Ok"},"data":{"LocState":2}}' ; 
+
+F_Resp :='HTTP/1.1 200 OK
+Date: Mon, 13 Sep 2021 15:30:54 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 306
+Connection: close
+ETag: W/"132-GAnpLnU3NsyDWLw+Gf+eTxqCEf4"
+Vary: Accept-Encoding
+set-cookie: sails.sid=s%3ARbq3Ifbyb8AiuNjiVzrtP_NHB-sZvxYf.9zLKJDJ4D%2BqNBmZaMIbFWYismpi%2FcQFMepKgrCN340s; Path=/; HttpOnly
+
+{"args":{"foo1":"bar1","foo2":"bar2"},"headers":{"x-forwarded-proto":"http","x-forwarded-port":"80","host":"postman-echo.com","x-amzn-trace-id":"Root=1-613f6eae-285d2c4318f5ed6e1bf9ef23","user-agent":"TcHttpClient","accept-encoding":"gzip, deflate"},"url":"http://postman-echo.com/get?foo1=bar1&foo2=bar2"}';
+
+
+
+F_Resp := 'HTTP/1.1 200 OK
+Pragma: no-cache
+Cache-Control: no-cache
+Content-Type: application/json
+Content-Length: 60
+
+{"header":{"status":1,"message":"Ok"},"data":{"LocState":5}}' ;
+*)
+
+F_Resp := '{"status":0,"message":"Ok"},"data":{"LocState":2}';
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_Resp">
+      <LineId Id="23" Count="5" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="51" Count="12" />
+      <LineId Id="31" Count="5" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="48" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

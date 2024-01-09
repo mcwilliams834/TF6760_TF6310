@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="MAIN" Id="{4d25805b-96ae-48b1-b142-603886703183}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	xIsInit: BOOL;
+	sLocalHost: STRING := '127.0.0.1';
+	hServer: T_HSERVER;
+	fbServer: FB_ServerClientConnection;
+	fbSocketReceive: FB_SocketReceive;
+	sData: STRING(255);
+	nRec: INT;
+	xRecData: BOOL;
+	cNewRecData: INT;
+	nLastError: UDINT;
+	cRecError: INT;
+	WaitNewReadTON: TON;
+	nInvalidCase: INT;
+	nBadCase: INT;
+	sLastData: STRING(1000);
+	startupWaitTON: TON;
+	fbSocketCloseAll: FB_SocketCloseAll;
+	fbSocketSend: FB_SocketSend;
+	sSendString: STRING(1000) := 'Hello World';
+	xSendString: BOOL;
+	hres: INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+	/// here is were we populate response string to any received message
+sSendString := F_Resp() ; 
+
+startupWaitTON( IN := NOT xIsInit, PT := T#5S ) ; 
+
+
+IF NOT xIsInit AND startupWaitTON.Q THEN
+	xIsInit := F_CreateServerHnd(
+							sSrvNetID:= '' , 
+							sLocalHost:= sLocalHost , 
+							nLocalPort:= 1234 , 
+							nMode:= LISTEN_MODE_CLOSEALL + CONNECT_MODE_ENABLEDBG , 
+							bEnable:= FALSE , 
+							hServer:= hServer ) ;
+END_IF
+
+fbSocketCloseAll(
+	sSrvNetId:= , 
+	bExecute:= NOT xIsInit , 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> );
+
+fbServer(
+	hServer:= hServer , 
+	eMode:=  , 
+	sRemoteHost:= , 
+	nRemotePort:= , 
+	bEnable:= xIsInit , 
+	tReconnect:= T#10S , 
+	bBusy=> , 
+	bError=> , 
+	nErrID=> , 
+	hSocket=> , 
+	eState=> );
+	
+fbServer.eState ; 
+
+CASE nRec OF
+0: // wait for connected
+	IF fbServer.eState = E_SOCKETCONNECTIONSTATE.eSOCKET_CONNECTED THEN
+		//clear trigger bit
+		xRecData := FALSE ; 
+		//we are connected so we can try receiving data
+		nRec := 10 ; 
+	END_IF
+10: // trigger receive check
+	xRecData := TRUE ; 
+	nRec := 20 ; 
+20: // wait receive check complete
+	IF NOT fbSocketReceive.bBusy THEN
+		xRecData := FALSE ; 
+		// check for not error
+		IF NOT fbSocketReceive.bError THEN
+			// check if data was received 
+			IF fbSocketReceive.nRecBytes>0 THEN
+				//we have new data, do something with it
+				//...
+				xSendString := TRUE ; 
+				//latch last good data
+				sLastData := sData ; 
+				
+				// we'll just increment a counter here
+				cNewRecData := cNewRecData + 1; 
+			ELSE
+				// no new data. that's ok, we'll poll again in a little bit
+				;
+			END_IF
+		ELSE
+			// error on receive. latch last error
+			nLastError := fbSocketReceive.nErrId ;
+			// count receive errors 
+			cRecError := cRecError + 1 ;
+			xIsInit := FALSE ;  
+		END_IF
+		
+		// any time we are done with polling for new data (good or fault)
+		// we will wait some time before polling again
+		nRec := 30 ; 
+	END_IF
+30:// wait to poll again
+	WaitNewReadTON( IN := TRUE, PT := T#100MS ) ; 
+	IF WaitNewReadTON.Q THEN
+		//reset timer
+		WaitNewReadTON( IN := FALSE ) ;
+		xSendString := FALSE ;
+		// if we are done waiting, then go back to case 0 and decide if ready to poll again
+		nRec := 0 ; 
+	END_IF
+ELSE
+	//always have an else case!
+	//latch invalid internal state
+	nInvalidCase := nRec ; 
+	//count num of time in invalid case
+	nBadCase := nBadCase + 1; 
+	//go to init
+	nRec := 0 ; 
+END_CASE
+
+fbSocketReceive(
+	sSrvNetId:= , 
+	hSocket:= fbServer.hSocket , 
+	cbLen:= SIZEOF(sData) , 
+	pDest:= ADR(sData) , 
+	bExecute:= xRecData , 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> , 
+	nRecBytes=> );
+
+	
+fbSocketSend(
+	sSrvNetId:= , 
+	hSocket:= fbServer.hSocket , 
+	cbLen:= LEN2(ADR(sSendString)) , 
+	pSrc:= ADR(sSendString) , 
+	bExecute:= xSendString , 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> );
+	
+	
+hres := len('{"header":{"status":0,"message":"Ok"},"data":{"LocState":2}}') ; 	
+	]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
